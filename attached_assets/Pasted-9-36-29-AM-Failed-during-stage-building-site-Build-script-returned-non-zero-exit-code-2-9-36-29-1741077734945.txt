@@ -1,0 +1,60 @@
+9:36:29 AM: Failed during stage 'building site': Build script returned non-zero exit code: 2
+9:36:29 AM: Netlify Build                                                 
+9:36:29 AM: ────────────────────────────────────────────────────────────────
+9:36:29 AM: ​
+9:36:29 AM: ❯ Version
+9:36:29 AM:   @netlify/build 29.59.2
+9:36:29 AM: ​
+9:36:29 AM: ❯ Flags
+9:36:29 AM:   accountId: 5a042a00a6188f4abaa49362
+9:36:29 AM:   baseRelDir: true
+9:36:29 AM:   buildId: 67c6bb6e033ac70008ba3676
+9:36:29 AM:   deployId: 67c6bb6e033ac70008ba3678
+9:36:29 AM: ​
+9:36:29 AM: ❯ Current directory
+9:36:29 AM:   /opt/build/repo
+9:36:29 AM: ​
+9:36:29 AM: ❯ Config file
+9:36:29 AM:   /opt/build/repo/netlify.toml
+9:36:29 AM: ​
+9:36:29 AM: ❯ Context
+9:36:29 AM:   production
+9:36:29 AM: ​
+9:36:29 AM: build.command from netlify.toml                               
+9:36:29 AM: ────────────────────────────────────────────────────────────────
+9:36:29 AM: ​
+9:36:29 AM: $ npm run build
+9:36:29 AM: > rest-express@1.0.0 build
+9:36:29 AM: > vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+9:36:29 AM: sh: 1: vite: not found
+9:36:29 AM: ​
+9:36:29 AM: "build.command" failed                                        
+9:36:29 AM: ────────────────────────────────────────────────────────────────
+9:36:29 AM: ​
+9:36:29 AM:   Error message
+9:36:29 AM:   Command failed with exit code 127: npm run build
+9:36:29 AM: ​
+9:36:29 AM:   Error location
+9:36:29 AM:   In build.command from netlify.toml:
+9:36:29 AM:   npm run build
+9:36:29 AM: ​
+9:36:29 AM:   Resolved config
+9:36:29 AM:   build:
+9:36:29 AM:     command: npm run build
+9:36:29 AM:     commandOrigin: config
+9:36:29 AM:     environment:
+9:36:29 AM:       - NODE_ENV
+9:36:29 AM:     publish: /opt/build/repo/dist
+9:36:29 AM:     publishOrigin: config
+9:36:29 AM:   functionsDirectory: /opt/build/repo/netlify/functions
+9:36:29 AM:   redirects:
+9:36:29 AM:     - from: /api/*
+      status: 200
+      to: /.netlify/functions/:splat
+    - from: /*
+      status: 200
+      to: /index.html
+  redirectsOrigin: config
+9:36:29 AM: Build failed due to a user error: Build script returned non-zero exit code: 2
+9:36:29 AM: Failing build: Failed to build site
+9:36:30 AM: Finished processing build request in 20.016s

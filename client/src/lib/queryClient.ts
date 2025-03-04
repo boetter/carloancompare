@@ -14,10 +14,17 @@ export async function apiRequest(
 ): Promise<Response> {
   console.log(`Sender ${method} anmodning til: ${url}`, data);
   
-  // Bestem om vi kører på Netlify
-  const isNetlify = window.location.hostname.includes('netlify.app') || 
-                    window.location.hostname.includes('.replit.app') || 
-                    window.location.hostname === 'localhost';
+  // Redirect til Netlify Functions hvis vi er i produktion
+  let apiUrl = url;
+  if (window.location.hostname.includes('netlify.app') || 
+      window.location.hostname.includes('.replit.app') || 
+      window.location.hostname === 'localhost') {
+    // Hvis det er et API-kald og vi er på Netlify, ændrer vi URL'en
+    if (url.startsWith('/api/')) {
+      apiUrl = url.replace('/api/', '/.netlify/functions/');
+      console.log('Omdirigerer API-kald til Netlify Functions:', apiUrl);
+    }
+  }
   
   const options: RequestInit = {
     method,
@@ -25,18 +32,18 @@ export async function apiRequest(
       "Content-Type": "application/json" 
     } : {},
     body: data ? JSON.stringify(data) : undefined,
-    // Inkluder kun credentials hvis det ikke er Netlify (serverless functions)
-    credentials: isNetlify && url.includes('netlify/functions') ? 'omit' : 'include',
+    // Vi undlader credentials for Netlify Functions
+    credentials: apiUrl.includes('/.netlify/functions/') ? 'omit' : 'include',
   };
   
   console.log('Fetch options:', options);
   
   try {
-    const res = await fetch(url, options);
-    console.log(`Svar fra ${url}:`, {
+    const res = await fetch(apiUrl, options);
+    // Log svar uden headers da det kan føre til TypeScript-problemer
+    console.log(`Svar fra ${apiUrl}:`, {
       status: res.status,
-      statusText: res.statusText,
-      headers: Object.fromEntries([...res.headers.entries()])
+      statusText: res.statusText
     });
     
     await throwIfResNotOk(res);

@@ -1,5 +1,6 @@
 [build]
-  command = "npm run build"
+  # Installer både devDependencies og dependencies
+  command = "npm ci --include=dev && npm run build"
   publish = "dist"
   functions = "netlify/functions"
 

@@ -19,15 +19,20 @@ const LoanCalculator: React.FC = () => {
   
   const [isCalculating, setIsCalculating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [usingLocalCalculation, setUsingLocalCalculation] = useState(false);
 
   // Determine whether we're running on Netlify or locally
   const isNetlify = window.location.hostname.includes('netlify.app') || 
                     window.location.hostname.includes('.replit.app') || 
                     window.location.hostname === 'localhost';
   
-  const apiEndpoint = isNetlify 
-    ? '/.netlify/functions/calculate-loans'
-    : '/api/calculate-loans';
+  // Brug det rigtige endpoint baseret på vores URL
+  let apiEndpoint = '/api/calculate-loans';
+  
+  if (isNetlify) {
+    // På Netlify bruger vi netlify functions
+    apiEndpoint = '/.netlify/functions/calculate-loans';
+  }
 
   console.log('Anvendt API-endpoint:', apiEndpoint);
 
@@ -61,9 +66,23 @@ const LoanCalculator: React.FC = () => {
       setError(null);
     },
     onError: (error: Error) => {
-      console.error('Fejl ved beregning:', error);
-      setError(error.message);
-      setIsCalculating(false);
+      console.error('Fejl ved beregning, skifter til lokal beregning:', error);
+      
+      // Vis brugeren at vi bruger lokal beregning i stedet
+      setUsingLocalCalculation(true);
+      
+      // Brug lokal beregning i stedet
+      try {
+        const localResults = calculateLocally(calculateMutation.variables as CarLoanParams);
+        setLoanResults(localResults);
+        setShowResults(true);
+        setIsCalculating(false);
+        setError(null);
+      } catch (localError) {
+        console.error('Fejl ved lokal beregning:', localError);
+        setError('Der opstod en fejl under beregningen. Prøv igen senere.');
+        setIsCalculating(false);
+      }
     }
   });
 
@@ -129,6 +148,7 @@ const LoanCalculator: React.FC = () => {
   const handleCalculate = (params: CarLoanParams) => {
     setIsCalculating(true);
     setError(null);
+    setUsingLocalCalculation(false);
     
     // Tjek minimum udbetaling (20%)
     const minDownPayment = params.carPrice * 0.2;
@@ -142,7 +162,7 @@ const LoanCalculator: React.FC = () => {
       // Prøv først at bruge API'en
       calculateMutation.mutate(params);
       
-      // Hvis der går mere end 8 sekunder uden svar, brug lokal beregning som fallback
+      // Hvis der går mere end 5 sekunder uden svar, brug lokal beregning som fallback
       const timeoutId = setTimeout(() => {
         if (isCalculating) {
           console.log('API timeout - bruger lokal beregning i stedet');
@@ -150,9 +170,10 @@ const LoanCalculator: React.FC = () => {
           setLoanResults(localResults);
           setShowResults(true);
           setIsCalculating(false);
+          setUsingLocalCalculation(true);
           setError(null);
         }
-      }, 8000);
+      }, 5000);
       
       // Ryd timeouten, hvis beregningen lykkes før timeout
       return () => clearTimeout(timeoutId);
@@ -162,6 +183,7 @@ const LoanCalculator: React.FC = () => {
       setLoanResults(localResults);
       setShowResults(true);
       setIsCalculating(false);
+      setUsingLocalCalculation(true);
       setError(null);
     }
   };
@@ -202,6 +224,14 @@ const LoanCalculator: React.FC = () => {
               <h3 className="font-semibold mb-1">Der opstod en fejl</h3>
               <p className="text-sm">{error}</p>
               <p className="text-sm mt-2">Prøv venligst igen eller kontrollér dine input-værdier.</p>
+            </div>
+          )}
+          
+          {usingLocalCalculation && !error && showResults && (
+            <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded-lg my-6">
+              <h3 className="font-semibold mb-1">Lokal beregning</h3>
+              <p className="text-sm">Vi kunne ikke forbinde til serveren og bruger derfor lokal beregning. Tallene er baseret på standard rentesatser.</p>
+              <p className="text-sm mt-2">Dette kan ske under høj belastning eller ved problemer med internetforbindelsen.</p>
             </div>
           )}
 
