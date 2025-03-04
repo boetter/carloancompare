@@ -1,17 +1,43 @@
 // Netlify-funktion til at beregne billån
 
 exports.handler = async (event, context) => {
+  console.log("Netlify function startet: calculate-loans");
+  console.log("HTTP-metode:", event.httpMethod);
+  console.log("Path:", event.path);
+  console.log("Headers:", JSON.stringify(event.headers));
+  
+  // Tilføj CORS-headers for at tillade cross-origin requests
+  const headers = {
+    'Access-Control-Allow-Origin': '*', // Tillad alle origins i udviklingsfasen
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Content-Type': 'application/json'
+  };
+
+  // Håndtér preflight OPTIONS requests
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ message: 'CORS pre-flight request successful' })
+    };
+  }
+
   try {
     // Kontrollér at det er en POST-anmodning
     if (event.httpMethod !== 'POST') {
       return {
         statusCode: 405,
+        headers,
         body: JSON.stringify({ message: 'Metode ikke tilladt' }),
       };
     }
 
     // Parse request body
+    console.log("Request body:", event.body);
     const body = JSON.parse(event.body);
+    console.log("Parsed body:", body);
+    
     const {
       carPrice,
       downPayment,
@@ -21,10 +47,20 @@ exports.handler = async (event, context) => {
       carAge
     } = body;
     
+    console.log("Extracted parameters:", {
+      carPrice,
+      downPayment,
+      loanPeriod,
+      carType,
+      carStatus,
+      carAge
+    });
+    
     // Validér inputs
     if (!carPrice || !downPayment || !loanPeriod || !carType || !carStatus) {
       return {
         statusCode: 400,
+        headers,
         body: JSON.stringify({ message: 'Manglende påkrævede parametre' }),
       };
     }
@@ -37,6 +73,7 @@ exports.handler = async (event, context) => {
     if (downPayment < minDownPayment) {
       return {
         statusCode: 400,
+        headers,
         body: JSON.stringify({ 
           message: 'Minimum udbetaling skal være 20% af bilens pris' 
         }),
@@ -64,8 +101,11 @@ exports.handler = async (event, context) => {
     const danskeResults = calculateLoanDetails(loanAmount, danskeInterestRate, loanPeriod);
     const nordeaResults = calculateLoanDetails(loanAmount, nordeaInterestRate, nordeaLoanPeriod);
     
+    console.log('Beregning gennemført succesfuldt:', { danskeResults, nordeaResults });
+    
     return {
       statusCode: 200,
+      headers,
       body: JSON.stringify({
         danske: danskeResults,
         nordea: nordeaResults,
@@ -76,8 +116,10 @@ exports.handler = async (event, context) => {
       }),
     };
   } catch (error) {
+    console.error('Fejl i beregningsfunktion:', error);
     return {
       statusCode: 500,
+      headers,
       body: JSON.stringify({ message: 'Serverfejl', error: error.message }),
     };
   }

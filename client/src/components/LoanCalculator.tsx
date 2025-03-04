@@ -21,32 +21,149 @@ const LoanCalculator: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Determine whether we're running on Netlify or locally
-  const isNetlify = window.location.hostname.includes('netlify.app');
+  const isNetlify = window.location.hostname.includes('netlify.app') || 
+                    window.location.hostname.includes('.replit.app') || 
+                    window.location.hostname === 'localhost';
+  
   const apiEndpoint = isNetlify 
     ? '/.netlify/functions/calculate-loans'
     : '/api/calculate-loans';
 
+  console.log('Anvendt API-endpoint:', apiEndpoint);
+
   const calculateMutation = useMutation({
     mutationFn: async (params: CarLoanParams) => {
-      const response = await apiRequest('POST', apiEndpoint, params);
-      return response.json();
+      console.log('Sender beregningsanmodning til:', apiEndpoint);
+      try {
+        // Brug en standard fetch i stedet for apiRequest, da vi måske har problemer med CORS
+        const response = await fetch(apiEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(params)
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`${response.status}: ${errorText || response.statusText}`);
+        }
+        
+        return await response.json();
+      } catch (err) {
+        console.error('Fejl ved API-kald:', err);
+        throw err;
+      }
     },
     onSuccess: (data) => {
+      console.log('Beregning vellykket:', data);
       setLoanResults(data);
       setShowResults(true);
       setIsCalculating(false);
       setError(null);
     },
     onError: (error: Error) => {
+      console.error('Fejl ved beregning:', error);
       setError(error.message);
       setIsCalculating(false);
     }
   });
 
+  // Fallback-beregning hvis API-kaldet fejler
+  const calculateLocally = (params: CarLoanParams) => {
+    // Beregn lånebeløb
+    const loanAmount = params.carPrice - params.downPayment;
+    
+    // Få rentesatser baseret på biltype
+    const danskeInterestRates: {[key: string]: number} = {
+      normal: 0.0279,
+      hybrid: 0.0229,
+      electric: 0.0229
+    };
+    
+    const danskeInterestRate = danskeInterestRates[params.carType];
+    const nordeaInterestRate = 0.0350;
+    
+    // Justér låneperiode for Nordea, hvis det er en brugt bil
+    let nordeaLoanPeriod = params.loanPeriod;
+    if (params.carStatus === 'used') {
+      nordeaLoanPeriod = Math.min(params.loanPeriod, 10 - params.carAge);
+      if (nordeaLoanPeriod < 1) nordeaLoanPeriod = 1;
+    }
+    
+    // Beregn lånedetaljer lokalt
+    const calculateLocalLoanDetails = (principal: number, interestRate: number, periodYears: number) => {
+      const monthlyRate = interestRate / 12;
+      const totalPayments = periodYears * 12;
+      
+      // Månedlig ydelses-formel: PMT = P * r * (1+r)^n / ((1+r)^n - 1)
+      const monthlyPayment = principal * monthlyRate * Math.pow(1 + monthlyRate, totalPayments) / 
+                          (Math.pow(1 + monthlyRate, totalPayments) - 1);
+                          
+      const totalPayment = monthlyPayment * totalPayments;
+      const totalInterest = totalPayment - principal;
+      
+      // Simpel ÅOP-beregning
+      const apr = interestRate * 1.1; // Tilføjer omtrentlige gebyrer og andre omkostninger
+      
+      return {
+        monthlyPayment: Math.round(monthlyPayment),
+        totalPayment: Math.round(totalPayment),
+        totalInterest: Math.round(totalInterest),
+        apr: (apr * 100).toFixed(1),
+        periodYears
+      };
+    };
+    
+    const danskeResults = calculateLocalLoanDetails(loanAmount, danskeInterestRate, params.loanPeriod);
+    const nordeaResults = calculateLocalLoanDetails(loanAmount, nordeaInterestRate, nordeaLoanPeriod);
+    
+    return {
+      danske: danskeResults,
+      nordea: nordeaResults,
+      nordeaLoanPeriod,
+      danskeInterestRate,
+      nordeaInterestRate,
+      loanAmount
+    };
+  };
+
   const handleCalculate = (params: CarLoanParams) => {
     setIsCalculating(true);
     setError(null);
-    calculateMutation.mutate(params);
+    
+    // Tjek minimum udbetaling (20%)
+    const minDownPayment = params.carPrice * 0.2;
+    if (params.downPayment < minDownPayment) {
+      setError(`Minimum udbetaling skal være ${Math.ceil(minDownPayment).toLocaleString()} kr. (20% af bilens pris)`);
+      setIsCalculating(false);
+      return;
+    }
+    
+    try {
+      // Prøv først at bruge API'en
+      calculateMutation.mutate(params);
+      
+      // Hvis der går mere end 8 sekunder uden svar, brug lokal beregning som fallback
+      const timeoutId = setTimeout(() => {
+        if (isCalculating) {
+          console.log('API timeout - bruger lokal beregning i stedet');
+          const localResults = calculateLocally(params);
+          setLoanResults(localResults);
+          setShowResults(true);
+          setIsCalculating(false);
+          setError(null);
+        }
+      }, 8000);
+      
+      // Ryd timeouten, hvis beregningen lykkes før timeout
+      return () => clearTimeout(timeoutId);
+    } catch (err) {
+      console.error('Fejl ved beregning, bruger lokal beregning i stedet:', err);
+      const localResults = calculateLocally(params);
+      setLoanResults(localResults);
+      setShowResults(true);
+      setIsCalculating(false);
+      setError(null);
+    }
   };
 
   return (

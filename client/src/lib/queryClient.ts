@@ -12,15 +12,39 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const res = await fetch(url, {
+  console.log(`Sender ${method} anmodning til: ${url}`, data);
+  
+  // Bestem om vi kører på Netlify
+  const isNetlify = window.location.hostname.includes('netlify.app') || 
+                    window.location.hostname.includes('.replit.app') || 
+                    window.location.hostname === 'localhost';
+  
+  const options: RequestInit = {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers: data ? { 
+      "Content-Type": "application/json" 
+    } : {},
     body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
-
-  await throwIfResNotOk(res);
-  return res;
+    // Inkluder kun credentials hvis det ikke er Netlify (serverless functions)
+    credentials: isNetlify && url.includes('netlify/functions') ? 'omit' : 'include',
+  };
+  
+  console.log('Fetch options:', options);
+  
+  try {
+    const res = await fetch(url, options);
+    console.log(`Svar fra ${url}:`, {
+      status: res.status,
+      statusText: res.statusText,
+      headers: Object.fromEntries([...res.headers.entries()])
+    });
+    
+    await throwIfResNotOk(res);
+    return res;
+  } catch (error) {
+    console.error('API-anmodningsfejl:', error);
+    throw error;
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
