@@ -29,8 +29,11 @@ const LoanCalculator: React.FC = () => {
   // Brug det rigtige endpoint baseret på vores URL
   let apiEndpoint = '/api/calculate-loans';
   
-  if (isNetlify) {
-    // På Netlify bruger vi netlify functions
+  // Tjek for Netlify miljø baseret på flere faktorer
+  if (isNetlify || 
+      process.env.NODE_ENV === 'production' || 
+      window.location.hostname !== 'localhost') {
+    // På Netlify eller i produktion bruger vi netlify functions
     apiEndpoint = '/.netlify/functions/calculate-loans';
   }
 
@@ -71,16 +74,20 @@ const LoanCalculator: React.FC = () => {
       // Vis brugeren at vi bruger lokal beregning i stedet
       setUsingLocalCalculation(true);
       
-      // Brug lokal beregning i stedet
+      // Brug lokal beregning i stedet og vis en venlig advarsel til brugeren
       try {
+        console.log('Bruger lokal beregning som backup');
         const localResults = calculateLocally(calculateMutation.variables as CarLoanParams);
         setLoanResults(localResults);
         setShowResults(true);
         setIsCalculating(false);
         setError(null);
+        
+        // Vis en venlig notifikation om at vi bruger lokal beregning
+        console.info('Bruger lokal beregning grundet følgende fejl:', error.message);
       } catch (localError) {
-        console.error('Fejl ved lokal beregning:', localError);
-        setError('Der opstod en fejl under beregningen. Prøv igen senere.');
+        console.error('Alvorlig fejl ved lokal beregning:', localError);
+        setError('Der opstod en fejl under beregningen. Prøv igen senere eller prøv at genindlæse siden.');
         setIsCalculating(false);
       }
     }
@@ -165,13 +172,22 @@ const LoanCalculator: React.FC = () => {
       // Hvis der går mere end 5 sekunder uden svar, brug lokal beregning som fallback
       const timeoutId = setTimeout(() => {
         if (isCalculating) {
-          console.log('API timeout - bruger lokal beregning i stedet');
-          const localResults = calculateLocally(params);
-          setLoanResults(localResults);
-          setShowResults(true);
-          setIsCalculating(false);
-          setUsingLocalCalculation(true);
-          setError(null);
+          console.log('API timeout efter 5 sekunder - bruger lokal beregning i stedet');
+          try {
+            const localResults = calculateLocally(params);
+            setLoanResults(localResults);
+            setShowResults(true);
+            setIsCalculating(false);
+            setUsingLocalCalculation(true);
+            setError(null);
+            
+            // Log information om timeout
+            console.info('Bruger lokal beregning grundet timeout på API-kald');
+          } catch (fallbackError) {
+            console.error('Fejl under lokal beregning efter timeout:', fallbackError);
+            setError('Der opstod en fejl under beregningen efter timeout. Prøv igen senere.');
+            setIsCalculating(false);
+          }
         }
       }, 5000);
       
@@ -231,7 +247,12 @@ const LoanCalculator: React.FC = () => {
             <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded-lg my-6">
               <h3 className="font-semibold mb-1">Lokal beregning</h3>
               <p className="text-sm">Vi kunne ikke forbinde til serveren og bruger derfor lokal beregning. Tallene er baseret på standard rentesatser.</p>
-              <p className="text-sm mt-2">Dette kan ske under høj belastning eller ved problemer med internetforbindelsen.</p>
+              <p className="text-sm mt-2">Dette kan ske under høj belastning, netværksproblemer eller hvis API'en er utilgængelig.</p>
+              <p className="text-sm mt-2">
+                <strong>Bemærk:</strong> Lokale beregninger bruger følgende standardrenter:<br />
+                - Danske Bank: {loanResults ? `${(loanResults.danskeInterestRate * 100).toFixed(2)}%` : '2,29-2,79%'} (afhængig af biltype)<br />
+                - Nordea: {loanResults ? `${(loanResults.nordeaInterestRate * 100).toFixed(2)}%` : '3,50%'}
+              </p>
             </div>
           )}
 

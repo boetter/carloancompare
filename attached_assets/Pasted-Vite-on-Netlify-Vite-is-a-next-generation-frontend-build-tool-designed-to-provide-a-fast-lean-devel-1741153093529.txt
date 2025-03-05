@@ -1,0 +1,59 @@
+Vite on Netlify
+Vite is a next-generation frontend build tool designed to provide a fast, lean development experience for modern web projects. It includes a dev server and a build command that bundles your code. Use the frontend library or framework of your choice when you create a project with Vite.
+
+# Key features
+The features listed below outline benefits for Vite projects, including those built and deployed with Netlify.
+
+Dependency resolving and pre-bundling. Vite detects bare module imports in all served source files and pre-bundles them to improve page loading speed. It also converts CommonJS modules to ES modules and ensures the browser imports them properly.
+Hot Module Replacement (HMR). Frameworks with HMR capabilities can leverage Vite’s HMR API to provide instant updates without reloading the page or impacting the application state.
+Out-of-the-box support for Typescript, Vue, and JSX. With Vite, you can import TS, JSX, and TSX files out of the box and enjoy first-class support for Vue.
+Build optimizations. Features such as CSS code splitting, automatically generated directives, and async chunk loading optimization are automatically applied as part of the build process, without the need for additional configuration.
+Easily extendable. Vite can be extended using plugins based on the mature ecosystem of Rollup plugins. Use plugins to extend the dev server and enable SSR functionality.
+# Netlify integration
+When you link a repository for a project, Netlify tries to detect the framework your site is using. If your site is built with Vite, Netlify provides a suggested build command and publish directory: npm run build or yarn build and dist. You can override suggested values or set them in a configuration file instead, but automatic framework detection may help simplify the process of setting up a project with Vite on Netlify.
+
+# Deploy a Vite site on Netlify
+This section demonstrates how to deploy a Vite site on Netlify. It covers:
+
+Starting a new project using Vite
+Deploying your Vite project to Netlify with Netlify CLI
+# Start a new project using Vite
+Before you begin, make sure you have Node.js version 18.14.0 or later installed on your machine. Then, you can start a new project using Vite.
+
+Scaffold your Vite project from the command line with any of the following package managers:
+
+npm
+yarn
+pnpm
+npm create vite@latest
+
+Follow the prompts to enter your project name and select the template you want to use. Check out the create-vite docs for more information about the supported templates.
+
+Launch your site locally by running the appropriate dev command. For example, if you built your project with npm:
+
+npm run dev
+
+From here you can customize your site. You can also create a Git repository for your site to take advantage of continuous deployment.
+
+# Deploy your Vite project with Netlify CLI
+You can deploy your project from the command line using Netlify CLI.
+
+To ensure you have the latest version of Netlify CLI installed, run this command from any directory in your terminal:
+
+npm install netlify-cli -g
+
+In the directory for your project, run the following command to create a new Netlify site:
+
+netlify init
+
+Didn’t initialize a Git repository?
+When you run netlify init without initializing a Git repository first, the CLI prompts you to connect your local directory to GitHub. Follow the steps in your terminal to link your local directory with a remote repo in order to use continuous deployment for your site.
+
+Follow the prompts to create your site, select a team if necessary, and optionally create a site name. If you already initialized a Git repository, you can authorize your Git provider and set your build command and directory.
+
+If you used continuous deployment, your site is now published! To learn how to manually deploy a site, check out the manual deploy docs.
+
+Avoid 404s for SPAs
+If your project is a single page app (SPA) that uses the history pushState method to get clean URLs, you must add a rewrite rule to serve the index.html file no matter what URL the browser requests.
+
+#

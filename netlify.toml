@@ -1,18 +1,23 @@
 [build]
-  # Installer både devDependencies og dependencies - vigtigt at installere før bygning
-  command = "npm ci --include=dev && npm run build"
+  # Installer kun nødvendige dependencies - vigtigt for Netlify's byggemiljø
+  command = "npm install vite esbuild @vitejs/plugin-react && npm ci && npm run build && cp _redirects dist/ && cp client/public/_redirects dist/public/"
   publish = "dist"
   functions = "netlify/functions"
 
 [build.environment]
   NODE_ENV = "production"
+  # Fortæl Node at vi er i production mode
+  NODE_VERSION = "18"
 
+# Redirect API kald til Netlify Functions
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
 
+# Håndter SPA routing - vigtigt for history API
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+  force = true # Sikrer at dette gælder selv for eksisterende filer

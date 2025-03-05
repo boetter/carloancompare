@@ -1,2 +1,5 @@
+# Redirect API-kald til Netlify Functions
 /api/*  /.netlify/functions/:splat  200
-/*      /index.html     200
+
+# Vigtig SPA fallback - alle andre stier går til index.html
+/*      /index.html     200!
