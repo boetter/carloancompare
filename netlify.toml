@@ -1,5 +1,5 @@
 [build]
-  # Installer både devDependencies og dependencies
+  # Installer både devDependencies og dependencies - vigtigt at installere før bygning
   command = "npm ci --include=dev && npm run build"
   publish = "dist"
   functions = "netlify/functions"
